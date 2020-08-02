@@ -1,0 +1,271 @@
+<!doctype html>
+<!-- kiftd 主页面 by 青阳龙野 -->
+<html>
+<head>
+<base href="/">
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="renderer" content="webkit">
+<meta name="viewport"
+	content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>KIFT</title>
+<!-- Bootstrap基本框架 -->
+<link rel="stylesheet" href="css/bootstrap.min.css">
+<!-- 全局样式 -->
+<link rel="stylesheet" href="css/overrall.min.css">
+<!-- 图片查看器插件 -->
+<link rel="stylesheet" href="css/viewer.min.css">
+<!-- 音乐播放器插件 -->
+<link rel="stylesheet" href="css/APlayer.min.css">
+<!-- 页面图标 -->
+<link rel="icon" type="image/x-icon" href="css/icon.png" />
+<!-- 对旧浏览器的支持部分... -->
+<!--[if lt IE 9]>
+      <script src="js/html5shiv.min.js"></script>
+      <script src="js/respond.min.js"></script>
+<![endif]-->
+</head>
+
+<body>
+	<!-- 显示主体 -->
+	<div class="container">
+		<!-- 页面标题栏 -->
+		<div class="row">
+			<div class="col-md-12">
+				<div class="titlebox">
+					<span class="titletext"> <!-- 主标题，如需修改请替换后方标签内的文字 --> <em>
+							小熊网络文件传输系统 <small> <!-- 副标题，如需修改请替换后方标签内的文字 --> <span
+								class="graytext">XIFT</span>
+						</small>
+					</em>
+					</span> 
+					<span id="tb" class="rightbtn"></span>
+					<button class="btn btn-link rightbtn" onclick="refreshFolderView()">
+						刷新 <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+					</button>
+				</div>
+				<hr />
+			</div>
+		</div>
+		<!-- 信息栏、操作栏与文件列表 -->
+		<div class="row">
+			<div class="col-md-12">
+				<p id="vicetbbox" class="subtitle" style="display: none;">
+					<span id="tb2"></span>
+					<button class="btn btn-link" onclick="refreshFolderView()">
+						刷新 <span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>
+					</button>
+				</p>
+				<p class="subtitle">
+					OS：<span id="serverOS"><span class="graytext">加载中...</span></span>
+				</p>
+				<div id="filetable" class="panel panel-default" unselectable="on"
+					onselectstart="return false;" style="-moz-user-select: none;"> <!-- bs的面板组件 -->
+					<!-- 文件列表头部，也就是操作栏 -->
+					<div class="panel-heading">
+						<div class="heading">
+							<div class="navbar-header"> 
+								<a id="filetableheadera" href="javascript:void(0);"
+									class="navbar-text" data-toggle="modal"
+									data-target="#folderInfoModal"><span id="folderIconSpan"
+									class="glyphicon glyphicon-folder-close"></span>&ensp;&ensp;<span
+									id="currentFolderName"></span> <span id="mdropdownicon"></span></a>
+							</div>
+							<div class="collapse navbar-collapse" id="filetableoptmenu">
+								<ul class="nav navbar-nav">
+									<li class="dropdown"><a href="javascript:void(0);"
+										class="dropdown-toggle" data-toggle="dropdown" role="button"
+										aria-haspopup="true" aria-expanded="false">上一级 <span
+											class="caret"></span></a>
+										<ul class="dropdown-menu" id="parentFolderList"></ul></li>
+								</ul>
+								<form id="filetableoptmenusreach"
+									class="navbar-form navbar-left">
+									<div class="form-group">
+										<input id="sreachKeyWordIn" type="text" class="form-control"
+											placeholder="请输入文件名...">
+									</div>
+									<button type="button" class="btn btn-default"
+										onclick="doSearchFile()">搜索</button>
+								</form>
+								<ul class="nav navbar-nav navbar-right">
+									<li id="packageDownloadBox"></li>
+									<li class="dropdown" id="operationMenuBox"
+										data-toggle="popover"><a class="dropdown-toggle"
+										data-toggle="dropdown" role="button" aria-haspopup="true"
+										aria-expanded="false"><span
+											class="glyphicon glyphicon-cog"></span> 操作 <span
+											class="caret"></span></a>
+										<ul class="dropdown-menu" id="fileListDropDown">
+											<li id="createFolderButtonLi"><a>新建文件夹 <span
+													class="pull-right"><span
+														class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>+N</span></a></li>
+											<li role="separator" class="divider"></li>
+											<li id="uploadFileButtonLi"><a>上传文件 <span
+													class="pull-right"><span
+														class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>+U</span></a></li>
+											<li role="separator" class="divider"></li>
+											<li id="cutFileButtonLi"><a><span id='cutSignTx'>剪切
+														<span class="pull-right"><span
+															class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>+C</span>
+												</span></a></li>
+											<li id="deleteSeelectFileButtonLi"><a>删除 <span
+													class="pull-right"><span
+														class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span>+D</span></a></li>
+										</ul></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					<table class="table table-hover">
+						<thead>
+							<tr>
+								<th onclick="sortbyfn()">文件名<span id="sortByFN"
+									aria-hidden="true" style="float: right"></span></th>
+								<th class="hiddenColumn" onclick="sortbycd()">创建日期<span
+									id="sortByCD" aria-hidden="true" style="float: right"></span></th>
+								<th onclick="sortbyfs()">大小<span id="sortByFS"
+									aria-hidden="true" style="float: right"></span></th>
+								<th class="hiddenColumn" onclick="sortbycn()">创建者<span
+									id="sortByCN" aria-hidden="true" style="float: right"></span></th>
+								<th onclick="showOriginFolderView()">操作</th>
+							</tr>
+						</thead>
+						<tbody id="foldertable"></tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- end 显示主体 -->
+	<!-- 登录模态框 -->
+	<div class="modal fade bs-example-modal-sm" id="loginModal"
+		tabindex="-1" role="dialog" aria-labelledby="loginModelTitle">
+		<div class="modal-dialog modal-sm" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="loginModelTitle">
+						<span class="glyphicon glyphicon-user"></span> 账户登录
+					</h4>
+				</div>
+				<div class="modal-body">
+					<form class="form-horizontal">
+						<div class="form-group" id="accountidbox">
+							<label for="accountid" id="accountidtitle"
+								class="col-sm-3 control-label">账户:</label>
+							<div class="col-sm-9">
+								<input type="text" class="form-control" id="accountid"
+									placeholder="请输入账户……">
+							</div>
+						</div>
+						<div class="form-group" id="accountpwdbox">
+							<label for="accountpwd" id="accountpwdtitle"
+								class="col-sm-3 control-label">密码:</label>
+							<div class="col-sm-9">
+								<input type="password" class="form-control" id="accountpwd"
+									placeholder="请输入密码……">
+							</div>
+						</div>
+						<div class="form-group hidden" id="vercodebox"></div>
+						<div id="alertbox" role="alert"></div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+					<button type="button" id="dologinButton" class="btn btn-primary"
+						onclick="dologin()">登录</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- end 登录 -->
+	<!-- 上传文件框 -->
+	<div class="modal fade" id="uploadFileModal" tabindex="-1"
+		role="dialog" aria-labelledby="uploadFileMolderTitle">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="uploadFileMolderTitle">
+						<span class="glyphicon glyphicon-cloud-upload"></span> 上传文件
+					</h4>
+				</div>
+				<div class="modal-body">
+					<h5>
+						选择文件：<span id="selectcount"></span>
+					</h5>
+					<input type="text" id="filepath" class="form-control"
+						onclick="checkpath()" onfocus="this.blur()"
+						placeholder="请点击选择要上传的文件……"> <input type="file"
+						id="uploadfile" style="display: none;" onchange="getInputUpload()"
+						multiple="multiple"> <br />
+					<h5>
+						上传进度：<span id="filecount"></span>
+					</h5>
+					<div class="progress">
+						<div id="pros" class="progress-bar" role="progressbar"
+							aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+							style="width: 0%;">
+							<span class="sr-only"></span>
+						</div>
+					</div>
+					<h5>上传状态：</h5>
+					<div class="panel panel-default">
+						<div class="panel-body">
+							<div id="uploadstatus" class="uploadstatusbox"></div>
+						</div>
+					</div>
+					<div id="uploadFileAlert" role="alert"></div>
+					<div id="selectFileUpLoadModelAlert" class="alert alert-danger"
+						role="alert">
+						<h4>提示：存在同名文件！</h4>
+						<p>
+							您要上传的文件“<span id="repeFileName"></span>”已存在于该路径下，您希望：
+						</p>
+						<p>
+							<input id="selectFileUpLoadModelAsAll" type="checkbox">
+							全部应用
+						</p>
+						<p>
+							<button id="uploadcoverbtn" type="button"
+								class="btn btn-danger btn-sm"
+								onclick="selectFileUpLoadModelEnd('cover')">覆盖</button>
+							<button type="button" class="btn btn-default btn-sm"
+								onclick="selectFileUpLoadModelEnd('skip')">跳过</button>
+							<button type="button" class="btn btn-default btn-sm"
+								onclick="selectFileUpLoadModelEnd('both')">保留两者</button>
+						</p>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default"
+						onclick='abortUpload()'>取消</button>
+					<button id="umbutton" type='button' class='btn btn-primary'
+						onclick='checkUploadFile()'>开始上传</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- end 上传文件 -->
+</body>
+<!-- jquery基本框架 -->
+<script type="text/javascript" src="js/jquery-1.12.4.min.js"></script>
+<!-- bootstrap基本框架 -->
+<script type="text/javascript" src="js/bootstrap.min.js"></script>
+<!-- 加密插件 -->
+<script type="text/javascript" src="js/jsencrypt.min.js"></script>
+<!-- 图片查看器 -->
+<script type="text/javascript" src="js/viewer.min.js"></script>
+<script type="text/javascript" src="js/jquery-viewer.min.js"></script>
+<!-- 音乐播放器 -->
+<script type="text/javascript" src="js/APlayer.min.js"></script>
+<!-- 页面操作定义 -->
+<script type="text/javascript" src="js/home.min.js"></script>
+</html>

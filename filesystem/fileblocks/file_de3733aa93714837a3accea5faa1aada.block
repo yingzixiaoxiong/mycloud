@@ -1,0 +1,76 @@
+1.创建场景句柄scenePtr
+  模型显示场景DisModelScene<string,Inptr> = <guid,scenePtr>
+2.创建井group
+  获取到井句柄wellPtr
+  获取到井数据句柄welldata
+3.添加井至场景
+  入参是scenePtr和wellPtr
+4.初始化真实坐标井
+  入参是wellPtr
+5.切换井显示
+  入参是wellPtr，各个井的wellname，isShow
+6.刷新显示井
+  入参是wellPtr
+7.绘制模型
+  设置场景显示位置
+8.锁定绘图区大小
+  更改场景大小
+  渲染场景
+  刷新图形  入参：OpenGLPtr（openGL图形对象）
+
+等值线间隔
+
+ModelStateEnum 模型显示状态：volume（模型体）,fence（栅状图）,section（剖面图）
+ModelType 模型类型：GeoModel（地质模型），SimModel（数值模型），CustomModel，CustomSimModel等
+PropertyType 显示PetrelRE模型的属性：Z（构造体），NTG（砂地比），PORO，PERMX，PERMY，PERMZ，SWAT等
+3D模型group类型 ModelGeo（地质模型体） ModelSim（数值模型体）
+
+自建模型打开项目的流程
+一：加载项目所有的构造模型信息
+1.获取 Model 与 Grid
+1.1获取xml文件模型对象C:\\Users\\Administrator\\Documents\\MDSProjects\\自建项目-3-27\\ModelSummary.xml
+1.1.1获取到模型对象，包括网格对象
+1.1.2获取到网格对象，网格对象有地层对象，边界什么的，还有模型对象
+1.2获取网格信息
+1.2.1获取网格面信息（\model\grid\HorizonSummary.xml），断层信息，属性信息，井显示，grid对应的粗化粗化，测井对应的粗化文件，边界，算法等信息
+1.2.1.1面信息包括面name，层位名，光滑度，层位坐标海拔等数据
+二：加载项目的当前激活信息
+1.从ActiveModel.xml加载网格，模型的路径配置信息（这个文件应该是一个动态文件，与用户的选择有关，它保存了一个model的配置）
+三：初始化配置
+四：加载内部井和外部井信息
+五：加载外部模型的井
+六：加载cutoff值
+七：初始化网络系统
+八：从libmds.dll激活模型，路径是107.mdsp文件
+
+当前激活的构造所属网格模型ActiveStructureGrid
+序列化当前激活的构造所属网格模型model\grid-5\GridSummary.xml
+模型文件model\grid-5\Geomodel\Model.grid
+创建自建模型group ->初始化面模型 ->初始化体模型 ->更新绘制模型为体模型
+添加模型至场景中去(groupIntPtr 至 sceneIntPtr)
+
+传到3d窗口中更新模型视图UpdateZones->DrawModel()
+
+导入模型在打开项目的时候没有激活？
+手动的定义模型为导入模型后的流程
+1.更新相关信息
+1.1写入rss.ini文件，将当前运行的项目根路径写入文件
+1.2激活并加载自定义模型
+1.3模型切换更新相关信息
+到这一步还是看不出激活了没有
+
+导入模型3d显示流程：创建3D场景，创建地质模型的group，添加地质group进场景，更新zone，切换显示等值线，绘制模型
+自建模型3d显示流程：创建3D场景，创建自建模型group，更新绘制模型为体模型，添加地质group进场景，更新zone，切换显示等值线，绘制模型
+
+"libModel.dll", EntryPoint = "NewModelWriter"
+"libModel.dll", EntryPoint = "FreeModelWriter"
+"libModel.dll", EntryPoint = "PushModelData"
+
+LibMDSHelper.CreatePetrelREGroup(ref group, ref project.GeoData, project.GeoPtr, (Int32)modelType)
+group获取到本地的图形数据对象
+project.GeoData其实是group的数据部分
+project.GeoPtr就是petro模型对象，需要转换成本地的图形数据对象
+
+断层导入
+->标记，断层第一根
+x,y,z(断层值)

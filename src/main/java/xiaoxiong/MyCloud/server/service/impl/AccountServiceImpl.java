@@ -1,0 +1,157 @@
+package xiaoxiong.MyCloud.server.service.impl;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.springframework.stereotype.Service;
+
+import com.google.gson.Gson;
+
+import xiaoxiong.MyCloud.server.enumeration.VCLevel;
+import xiaoxiong.MyCloud.server.pojo.LoginInfoPojo;
+import xiaoxiong.MyCloud.server.pojo.PublicKeyInfo;
+import xiaoxiong.MyCloud.server.service.AccountService;
+import xiaoxiong.MyCloud.server.util.ConfigureReader;
+import xiaoxiong.MyCloud.server.util.DecryptionUtil;
+import xiaoxiong.MyCloud.server.util.KeyUtil;
+import xiaoxiong.MyCloud.server.util.VerificationCode;
+import xiaoxiong.MyCloud.server.util.VerificationCodeFactory;
+
+@Service
+public class AccountServiceImpl implements AccountService{
+	@Resource
+	private KeyUtil ku;
+
+	// 登录密钥有效期
+	private static final long TIME_OUT = 30000L;
+
+	@Resource //根据字段名去找bean
+	private Gson gson;
+
+	private VerificationCodeFactory vcf;
+
+	{
+		if (!ConfigureReader.instance().getVCLevel().equals(VCLevel.Close)) {
+			int line = 0;
+			int oval = 0;
+			switch (ConfigureReader.instance().getVCLevel()) {
+			case Standard: {
+				line = 6;
+				oval = 2;
+				break;
+			}
+			case Simplified: {
+				line = 1;
+				oval = 0;
+				break;
+			}
+			default:
+				break;
+			}
+			// 验证码生成工厂，包含了一些不太容易误认的字符
+			vcf = new VerificationCodeFactory(45, line, oval, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k', 'm',
+					'n', 'p', 'q', 'r', 's', 't', 'w', 'x', 'y', 'z', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
+					'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'W', 'X', 'Y', 'Z');
+		}
+	}
+
+	// 关注账户，当任意一个账户登录失败后将加入至该集合中，登录成功则移除。登录集合中的账户必须进行验证码验证
+	private static final Set<String> focusAccount = new HashSet<>();
+
+	public String checkLoginRequest(final HttpServletRequest request, final HttpSession session) {
+		final String encrypted = request.getParameter("encrypted");
+		final String loginInfoStr = DecryptionUtil.dncryption(encrypted, ku.getPrivateKey());
+		try {
+			final LoginInfoPojo info = gson.fromJson(loginInfoStr, LoginInfoPojo.class);
+			if (System.currentTimeMillis() - Long.parseLong(info.getTime()) > TIME_OUT) {
+				return "error";
+			}
+			final String accountId = info.getAccountId();
+			if (!ConfigureReader.instance().foundAccount(accountId)) {
+				return "accountnotfound";
+			}
+			// 如果验证码开启且该账户已被关注，则要求提供验证码
+			if(!ConfigureReader.instance().getVCLevel().equals(VCLevel.Close)) {
+				synchronized (focusAccount) {
+					if (focusAccount.contains(accountId)) {
+						String reqVerCode = request.getParameter("vercode");
+						String trueVerCode = (String) session.getAttribute("VERCODE");
+						session.removeAttribute("VERCODE");// 确保一个验证码只会生效一次，无论对错
+						if (reqVerCode == null || trueVerCode == null || !trueVerCode.equals(reqVerCode.toLowerCase())) {
+							return "needsubmitvercode";
+						}
+					}
+				}
+			}
+			if (ConfigureReader.instance().checkAccountPwd(accountId, info.getAccountPwd())) {
+				session.setAttribute("ACCOUNT", (Object) accountId);
+				// 如果该账户输入正确且是一个被关注的账户，则解除该账户的关注，释放空间
+				if(!ConfigureReader.instance().getVCLevel().equals(VCLevel.Close)) {
+					synchronized (focusAccount) {
+						focusAccount.remove(accountId);
+					}
+				}
+				return "permitlogin";
+			}
+			// 如果账户密码不匹配，则将该账户加入到关注账户集合，避免对方进一步破解
+			synchronized (focusAccount) {
+				if(!ConfigureReader.instance().getVCLevel().equals(VCLevel.Close)) {
+					focusAccount.add(accountId);
+				}
+			}
+			return "accountpwderror";
+		} catch (Exception e) {
+			return "error";
+		}
+	}
+
+	public void logout(final HttpSession session) {
+		session.invalidate();
+	}
+
+	public String getPublicKey() {
+		PublicKeyInfo pki = new PublicKeyInfo();
+		pki.setPublicKey(ku.getPublicKey());
+		pki.setTime(System.currentTimeMillis());
+		return gson.toJson(pki);
+	}
+
+	@Override
+	public void getNewLoginVerCode(HttpServletRequest request, HttpServletResponse response, HttpSession session) {
+		try {
+			if (ConfigureReader.instance().getVCLevel().equals(VCLevel.Close)) {
+				response.sendError(404);
+			} else {
+				VerificationCode vc = vcf.next(4);
+				session.setAttribute("VERCODE", vc.getCode());
+				response.setContentType("image/png");
+				OutputStream out = response.getOutputStream();
+				vc.saveTo(out);
+				out.flush();
+				out.close();
+			}
+		} catch (IOException e) {
+			try {
+				response.sendError(500);
+			} catch (IOException e1) {
+
+			}
+		}
+	}
+
+	@Override
+	public String doPong(HttpServletRequest request) {
+		if(request.getSession().getAttribute("ACCOUNT") != null) {
+			return "pong";//只有登录了的账户才有必要进行应答
+		}else {
+			return "";//未登录则不返回标准提示，但也做应答（此时，前端应停止后续应答以节省线程开支）
+		}
+	}
+}

@@ -1,0 +1,3 @@
+2020-07-05 10:39:24 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLException: Table "FOLDER" not found; SQL statement:
+SELECT * FROM FOLDER WHERE folder_id = ? [42102-197]
